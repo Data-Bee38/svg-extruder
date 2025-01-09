@@ -63,7 +63,7 @@
     <textarea id="svg-input" placeholder="Paste your SVG code here"></textarea>
     <button id="render-svg">Render SVG</button>
     <button id="export-obj">Export as OBJ</button>
-    <button id="export-glb">Export as GLB</button>
+    <button id="export-gltf">Export as GLTF</button>
     
 </div>
 
@@ -199,7 +199,7 @@
     }
 
     // Export as GLB
-    function exportGLB() {
+    function exportGLTF() {
     const exporter = new THREE.GLTFExporter();
 
     // Ensure all objects are valid before export
@@ -215,8 +215,8 @@
             }
         );
     } catch (error) {
-        alert("Failed to export as GLB. Check the console for details.");
-        console.error("GLB Export Error:", error);
+        alert("Failed to export as GLTF. Check the console for details.");
+        console.error("GLTF Export Error:", error);
     }
 }
 
@@ -247,7 +247,7 @@
 
         // Set up export buttons
         document.getElementById("export-obj").addEventListener("click", exportOBJ);
-        document.getElementById("export-glb").addEventListener("click", exportGLB);
+        document.getElementById("export-gltf").addEventListener("click", exportGLTF);
         document.getElementById("render-svg").addEventListener("click", renderSVG);
 
         // Update the extrusion depth display
