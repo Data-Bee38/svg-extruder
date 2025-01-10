@@ -1,263 +1,209 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>SVG to 3D Extrusion with Export</title>
+    <title>SVG Renderer with Export</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=11" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r124/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.126.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/three@0.111.0/examples/js/loaders/SVGLoader.js"></script>
+    <script src="https://unpkg.com/three@0.126.0/examples/js/exporters/OBJExporter.js"></script>
+    <script src="https://unpkg.com/three@0.126.0/examples/js/exporters/GLTFExporter.js"></script>
     <style>
         html, body {
+            background: black;
             margin: 0;
-            height: 100%;
+            padding: 0;
+            font-family: verdana;
             overflow: hidden;
         }
         h1{
             margin:0;
             padding:0;
         }
-        canvas {
-            display: block;
-        }
-        #controls {
-            z-index: 10;
-            background: rgba(255, 255, 255, 0.8);
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
             padding: 10px;
             border-radius: 8px;
-            display: flex;
-            justify-content: center;
-            flex-direction: column;
         }
-         canvas{
-            height: 75vh;
-         }
-         #controls{
-            height: 25vh;
-         }
         textarea {
             width: 100%;
             height: 150px;
-            margin-top: 10px;
         }
-        .control-item {
-            margin-bottom: 10px;
+        canvas {
+            width: 100%;
+            height: 100%;
         }
-        @media (min-width: 1200px){
-            #controls {
-                position: absolute;
-                top: 10px;
-                left: 10px;
-            }
-            #controls, canvas{
-                height: auto;
-            }
+        input[type="range"] {
+            width: 300px;
         }
-
     </style>
 </head>
 <body>
-<div id="controls">
-    <div class="control-item">
+    <div id="ui">
         <h1>SVG Extruder</h1>
-        <label for="extrude-depth">Extrude Depth:</label>
-        <input id="extrude-depth" type="range" min="1" max="100" value="15">
-        <span id="extrude-depth-value">15</span>
+        <textarea id="svgInput" placeholder="Paste your SVG code here...">
+            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 256 256" enable-background="new 0 0 256 256" xml:space="preserve">
+                <metadata> Svg Vector Icons : http://www.onlinewebfonts.com/icon </metadata>
+                <g><g><path fill="#000000" d="M221.2,194.6H20h-4.8l0.4-4.2l0.2-2.2H10v-6.5h6.3l3.8-43.2h-5.9v-6.5h6.5l0-0.4l0-0.1c0.4-3.7,1.6-6.9,3.3-9.7c1.8-2.9,4.1-5.3,7-7.2l0.3-0.2l75.9-45.7l0.1-0.1c7.9-4.5,16.7-6.9,26.3-7.2l0.2,0h107.4h4.8l-0.4,4.2l-10.8,124.7l-0.4,4.1l-4.7,0L221.2,194.6L221.2,194.6L221.2,194.6z M228.4,117.1l3.5-40.4c0.1-2.7-1.5-4-4.6-4.2h-93.9c-7.1,0.2-13.5,1.8-19.7,5.2l-63,38c-4.6,2.9-3.9,5.3,0.9,5.8h172C226.5,121.2,228.1,119.7,228.4,117.1L228.4,117.1z M188.6,132.6c-1.1,0-2,0.7-2,1.7l-0.5,5.7c-0.1,0.9,0.7,1.7,1.8,1.7h34.2c1.1,0,2-0.7,2-1.7l0.5-5.7c0.1-0.9-0.7-1.7-1.8-1.7H188.6z"/></g></g>
+            </svg>
+        </textarea><br>
+        <label><input type="checkbox" id="reverseWinding" checked />Reverse Winding Order</label><br>
+        <label for="extrudeDepth">Extrude:</label>
+        <input type="range" id="extrudeDepth" min="1" max="100" value="15"><span id="depthValue">15</span><br>
+        <button id="renderButton">Render SVG</button>
+        <button id="exportOBJButton">Export as OBJ</button>
+        <button id="exportGLTFButton">Export as GLTF</button>
     </div>
-    <textarea id="svg-input" placeholder="Paste your SVG code here"></textarea>
-    <button id="render-svg">Render SVG</button>
-    <button id="export-obj">Export as OBJ</button>
-    <button id="export-gltf">Export as GLTF</button>
-    
-</div>
+    <canvas id="container"></canvas>
 
-
-
-  <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/build/three.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/examples/js/loaders/SVGLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/examples/js/exporters/GLTFExporter.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/examples/js/exporters/OBJExporter.js"></script>
-
-
-
-<script>
-    // Core variables
-    let scene, camera, renderer, controls;
-    let extrudedObjects = [];
-
-    // Initialize scene
-    function initScene() {
-        scene = new THREE.Scene();
-    }
-
-    // Initialize renderer
-    function initRenderer() {
-        renderer = new THREE.WebGLRenderer({ antialias: true });
+    <script>
+        // Initialize Three.js scene
+        var canvas = document.getElementById("container");
+        var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-    }
+        var scene = new THREE.Scene();
+        var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
+        camera.position.set(0, 0, -10);
+        var controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.maxPolarAngle = Math.PI / 2.1;
 
-    // Initialize camera
-    function initCamera() {
-        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
-        camera.position.set(0, 0, 1500);
-    }
+        // Lighting
+        var light1 = new THREE.DirectionalLight(new THREE.Color('white'), 1);
+        light1.position.set(1, 1, 1).normalize();
+        scene.add(light1);
+        var light2 = new THREE.DirectionalLight(new THREE.Color('white'), 1);
+        light2.position.set(-1, 1, -1).normalize();
+        scene.add(light2);
 
-    // Initialize controls
-    function initControls() {
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.enableZoom = true;
-        controls.autoRotate = false;
-    }
+        // Grid helper
+        const gridHelper = new THREE.GridHelper(200, 50);
+        //scene.add(gridHelper);
 
-    // Initialize lights
-    function initLights() {
-        const ambientLight = new THREE.AmbientLight(0x404040);
-        const directionalLight = new THREE.DirectionalLight(0xffffff);
-        directionalLight.position.set(1, 1, 1).normalize();
-        scene.add(ambientLight);
-        scene.add(directionalLight);
-    }
+        // Group for SVG meshes
+        var svgGroup = new THREE.Group();
+        scene.add(svgGroup);
 
-    // Center the pivot of a mesh
-    function centerPivot(object) {
-        const box = new THREE.Box3().setFromObject(object); // Compute the bounding box
-        const center = new THREE.Vector3();
-        box.getCenter(center); // Get the center of the bounding box
+        // Handle window resize
+        window.addEventListener("resize", function () {
+            let width = window.innerWidth;
+            let height = window.innerHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        });
 
-        // Translate the object so its center aligns with the origin
-        object.position.sub(center);
+        // Update depth value display
+        var extrudeDepth = document.getElementById("extrudeDepth");
+        var depthValue = document.getElementById("depthValue");
+        extrudeDepth.addEventListener("input", () => {
+            depthValue.textContent = extrudeDepth.value;
+        });
 
-        return center; // Optionally return the center for reference
-    }
+        function renderSVG(svgMarkup) {
+            svgGroup.clear(); // Clear previous SVG renders
+            const loader = new THREE.SVGLoader();
+            const svgData = loader.parse(svgMarkup);
 
-    // Parse and extrude SVG shapes
-    function renderSVG() {
-        const loader = new THREE.SVGLoader();
-        const svgElement = document.getElementById("svg-input").value;
-        const extrudeDepth = parseFloat(document.getElementById("extrude-depth").value);
+            const reverseWinding = document.getElementById("reverseWinding").checked; // Check the reverse winding option
 
-        if (!svgElement.trim()) {
-            alert("Please paste valid SVG code.");
-            return;
-        }
+            // Temporary group to calculate positioning
+            const tempGroup = new THREE.Group();
 
-        try {
-            const svgData = loader.parse(svgElement);
-
-            // Extrusion options
-            const options = {
-                depth: extrudeDepth,
-                bevelEnabled: false,
-                curveSegments: 10,
-                steps: 1
-            };
-
-            // Remove existing extruded objects
-            extrudedObjects.forEach((obj) => scene.remove(obj));
-            extrudedObjects = [];
-
-            // Create mesh for each shape
             svgData.paths.forEach((path) => {
-                const shapes = path.toShapes(true);
+                // Reverse the winding order based on the toggle
+                const shapes = path.toShapes(reverseWinding);
                 shapes.forEach((shape) => {
-                    const geometry = new THREE.ExtrudeGeometry(shape, options);
-                    const material = new THREE.MeshStandardMaterial({
-                        color: 0xffffff,
-                        flatShading: true
+                    const geometry = new THREE.ExtrudeGeometry(shape, {
+                        depth: parseFloat(extrudeDepth.value), // Use slider value
+                        bevelEnabled: true,
                     });
-                    const mesh = new THREE.Mesh(geometry, material);
-// Compute the bounding box
-                const box = new THREE.Box3().setFromObject(mesh);
-                const center = new THREE.Vector3();
-                box.getCenter(center);
-
-                // Center the geometry
-                geometry.translate(-center.x, -center.y, -extrudeDepth / 2); // Include depth in centering
-                mesh.rotation.x = Math.PI; // Rotate each object
-                mesh.updateMatrix(); // Apply the transformation to the object
-                mesh.position.set(0, 0, 0); // Reset position;
-
-                    scene.add(mesh);
-                    
-                    extrudedObjects.push(mesh);
+                    const mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ color: new THREE.Color(`#777`) }));
+                    mesh.scale.set(0.03, -0.03, 0.03); // Scale and flip vertically
+                    mesh.castShadow = true;
+                    tempGroup.add(mesh); // Add to temporary group
                 });
             });
-        } catch (error) {
-            alert("Failed to parse the SVG. Please ensure the SVG is valid.");
-            console.error(error);
+
+            // Compute bounding box and adjust position
+            const box = new THREE.Box3().setFromObject(tempGroup);
+            const offset = box.getCenter(new THREE.Vector3());
+
+            // Center the pivot
+            tempGroup.position.set(-offset.x, -offset.y, -offset.z);
+
+            // Add the repositioned temporary group to the main SVG group
+            svgGroup.add(tempGroup);
         }
-    }
 
-    // Export as OBJ
-    function exportOBJ() {
-        const exporter = new THREE.OBJExporter();
-        const result = exporter.parse(scene);
-        const blob = new Blob([result], { type: 'text/plain' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'model.obj';
-        link.click();
-    }
 
-    // Export as GLB
-    function exportGLTF() {
-    const exporter = new THREE.GLTFExporter();
 
-    // Ensure all objects are valid before export
-    try {
-        exporter.parse(
-            scene,
-            (result) => {
-                const blob = new Blob([JSON.stringify(result)], { type: 'application/json' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = 'model.gltf';
-                link.click();
+        // Export functions
+        function convertToBufferGeometry(group) {
+            group.traverse((child) => {
+                if (child.isMesh && !(child.geometry instanceof THREE.BufferGeometry)) {
+                    child.geometry = new THREE.BufferGeometry().fromGeometry(child.geometry);
+                }
+            });
+        }
+
+        function exportOBJ() {
+            convertToBufferGeometry(svgGroup);
+            var exporter = new THREE.OBJExporter();
+            var objData = exporter.parse(svgGroup);
+            downloadFile(objData, 'model.obj', 'text/plain');
+        }
+
+        function exportGLTF() {
+            convertToBufferGeometry(svgGroup);
+            var exporter = new THREE.GLTFExporter();
+            exporter.parse(svgGroup, function (gltf) {
+                const blob = new Blob([JSON.stringify(gltf)], { type: 'application/json' });
+                downloadFile(blob, 'model.gltf', 'application/json');
+            });
+        }
+
+        function downloadFile(data, filename, type) {
+            const blob = data instanceof Blob ? data : new Blob([data], { type: type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Event listeners
+        document.getElementById("renderButton").addEventListener("click", function () {
+            var svgInput = document.getElementById("svgInput").value;
+            if (svgInput.trim()) {
+                renderSVG(svgInput);
+            } else {
+                alert("Please paste valid SVG code!");
             }
-        );
-    } catch (error) {
-        alert("Failed to export as GLTF. Check the console for details.");
-        console.error("GLTF Export Error:", error);
-    }
-}
+        });
 
-    // Animation loop
-    function animate() {
-        controls.update();
-        renderer.render(scene, camera);
-        requestAnimationFrame(animate);
-    }
+        document.getElementById("exportOBJButton").addEventListener("click", exportOBJ);
+        document.getElementById("exportGLTFButton").addEventListener("click", exportGLTF);
 
-    // Resize handling
-    function onWindowResize() {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    // Main function
-    function main() {
-        initScene();
-        initRenderer();
-        initCamera();
-        initControls();
-        initLights();
+        // Render loop
+        function animate() {
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
         animate();
 
-        window.addEventListener("resize", onWindowResize);
-
-        // Set up export buttons
-        document.getElementById("export-obj").addEventListener("click", exportOBJ);
-        document.getElementById("export-gltf").addEventListener("click", exportGLTF);
-        document.getElementById("render-svg").addEventListener("click", renderSVG);
-
-        // Update the extrusion depth display
-        document.getElementById("extrude-depth").addEventListener("input", (event) => {
-            document.getElementById("extrude-depth-value").textContent = event.target.value;
+        //render the loaded
+        window.addEventListener("load", () => {
+            const svgInput = document.getElementById("svgInput").value;
+            renderSVG(svgInput);
         });
-    }
-
-    // Run the main function
-    main();
-</script>
+    </script>
 </body>
 </html>
