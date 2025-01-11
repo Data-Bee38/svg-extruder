@@ -1,9 +1,6 @@
-![single-path svg extruder](screenshot0.jpg)  <br>
-![single-path svg extruder](screenshot1.jpg)  <br>
-![single-path svg extruder](screenshot2.jpg)  <br>
-![single-path svg extruder](screenshot3.jpg)  <br>
-![single-path svg extruder](screenshot4.jpg)  <br>
-![single-path svg extruder](screenshot5.jpg)  <br>
-![single-path svg extruder](screenshot6.jpg)  <br>
-![single-path svg extruder](screenshot7.jpg)  <br>
+![single-path svg extruder](screenshot01.jpg)  <br>
+![single-path svg extruder](screenshot02.jpg)  <br>
+![single-path svg extruder](screenshot03.jpg)  <br>
+![single-path svg extruder](screenshot04.jpg)  <br>
+
 [SVG Extruder ](https://codepen.io/Data-Bee38/full/XJrZOjZ)
