@@ -10,6 +10,7 @@
     <script src="https://unpkg.com/three@0.111.0/examples/js/loaders/SVGLoader.js"></script>
     <script src="https://unpkg.com/three@0.126.0/examples/js/exporters/OBJExporter.js"></script>
     <script src="https://unpkg.com/three@0.126.0/examples/js/exporters/GLTFExporter.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/examples/js/exporters/STLExporter.js"></script>
     <style>
         html, body {
             background: black;
@@ -18,9 +19,9 @@
             font-family: verdana;
             overflow: hidden;
         }
-        h1{
-            margin:0;
-            padding:0;
+        h1 {
+            margin: 0;
+            padding: 0;
         }
         #ui {
             position: absolute;
@@ -60,11 +61,11 @@
         <button id="renderButton">Render SVG</button>
         <button id="exportOBJButton">Export as OBJ</button>
         <button id="exportGLTFButton">Export as GLTF</button>
+        <button id="exportSTLButton">Export as STL</button>
     </div>
     <canvas id="container"></canvas>
 
     <script>
-        // Initialize Three.js scene
         var canvas = document.getElementById("container");
         var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -74,7 +75,6 @@
         var controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.maxPolarAngle = Math.PI / 2.1;
 
-        // Lighting
         var light1 = new THREE.DirectionalLight(new THREE.Color('white'), 1);
         light1.position.set(1, 1, 1).normalize();
         scene.add(light1);
@@ -82,15 +82,9 @@
         light2.position.set(-1, 1, -1).normalize();
         scene.add(light2);
 
-        // Grid helper
-        const gridHelper = new THREE.GridHelper(200, 50);
-        //scene.add(gridHelper);
-
-        // Group for SVG meshes
         var svgGroup = new THREE.Group();
         scene.add(svgGroup);
 
-        // Handle window resize
         window.addEventListener("resize", function () {
             let width = window.innerWidth;
             let height = window.innerHeight;
@@ -99,7 +93,6 @@
             camera.updateProjectionMatrix();
         });
 
-        // Update depth value display
         var extrudeDepth = document.getElementById("extrudeDepth");
         var depthValue = document.getElementById("depthValue");
         extrudeDepth.addEventListener("input", () => {
@@ -107,44 +100,34 @@
         });
 
         function renderSVG(svgMarkup) {
-            svgGroup.clear(); // Clear previous SVG renders
+            svgGroup.clear();
             const loader = new THREE.SVGLoader();
             const svgData = loader.parse(svgMarkup);
+            const reverseWinding = document.getElementById("reverseWinding").checked;
 
-            const reverseWinding = document.getElementById("reverseWinding").checked; // Check the reverse winding option
-
-            // Temporary group to calculate positioning
             const tempGroup = new THREE.Group();
 
             svgData.paths.forEach((path) => {
-                // Reverse the winding order based on the toggle
                 const shapes = path.toShapes(reverseWinding);
                 shapes.forEach((shape) => {
                     const geometry = new THREE.ExtrudeGeometry(shape, {
-                        depth: parseFloat(extrudeDepth.value), // Use slider value
+                        depth: parseFloat(extrudeDepth.value),
                         bevelEnabled: true,
                     });
                     const mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ color: new THREE.Color(`#777`) }));
-                    mesh.scale.set(0.03, -0.03, 0.03); // Scale and flip vertically
+                    mesh.scale.set(0.03, -0.03, 0.03);
                     mesh.castShadow = true;
-                    tempGroup.add(mesh); // Add to temporary group
+                    tempGroup.add(mesh);
                 });
             });
 
-            // Compute bounding box and adjust position
             const box = new THREE.Box3().setFromObject(tempGroup);
             const offset = box.getCenter(new THREE.Vector3());
-
-            // Center the pivot
             tempGroup.position.set(-offset.x, -offset.y, -offset.z);
 
-            // Add the repositioned temporary group to the main SVG group
             svgGroup.add(tempGroup);
         }
 
-
-
-        // Export functions
         function convertToBufferGeometry(group) {
             group.traverse((child) => {
                 if (child.isMesh && !(child.geometry instanceof THREE.BufferGeometry)) {
@@ -169,6 +152,13 @@
             });
         }
 
+        function exportSTL() {
+            convertToBufferGeometry(svgGroup);
+            var exporter = new THREE.STLExporter();
+            var stlData = exporter.parse(svgGroup);
+            downloadFile(stlData, 'model.stl', 'text/plain');
+        }
+
         function downloadFile(data, filename, type) {
             const blob = data instanceof Blob ? data : new Blob([data], { type: type });
             const url = URL.createObjectURL(blob);
@@ -179,7 +169,6 @@
             URL.revokeObjectURL(url);
         }
 
-        // Event listeners
         document.getElementById("renderButton").addEventListener("click", function () {
             var svgInput = document.getElementById("svgInput").value;
             if (svgInput.trim()) {
@@ -191,15 +180,14 @@
 
         document.getElementById("exportOBJButton").addEventListener("click", exportOBJ);
         document.getElementById("exportGLTFButton").addEventListener("click", exportGLTF);
+        document.getElementById("exportSTLButton").addEventListener("click", exportSTL);
 
-        // Render loop
         function animate() {
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }
         animate();
 
-        //render the loaded
         window.addEventListener("load", () => {
             const svgInput = document.getElementById("svgInput").value;
             renderSVG(svgInput);
